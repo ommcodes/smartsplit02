@@ -19,8 +19,14 @@ function App() {
   // Friends: [{ id, name, upiId }]
   const [friends, setFriends] = useState([]);
 
+  // Who paid the bill
+  const [billPayerId, setBillPayerId] = useState('');
+
   // Assignments: { itemId: [friendId, ...] }
   const [assignments, setAssignments] = useState({});
+
+  // Tip: { amount: string, isPercent: boolean, mode: 'equal'|'proportional'|'progressive' }
+  const [tip, setTip] = useState({ amount: '', isPercent: false, mode: 'equal' });
 
   // Derived — passed to steps 4 & 5
   const allItems = receipts.flatMap((r) => r.items);
@@ -49,7 +55,15 @@ function App() {
     setMaxReachedStep(1);
     setReceipts([]);
     setFriends([]);
+    setBillPayerId('');
     setAssignments({});
+    setTip({ amount: '', isPercent: false, mode: 'equal' });
+    // Clear settled payments from localStorage
+    try {
+      Object.keys(localStorage)
+        .filter((k) => k.startsWith('smartsplit_settled_'))
+        .forEach((k) => localStorage.removeItem(k));
+    } catch {}
   };
 
   if (showLicense) {
@@ -83,6 +97,8 @@ function App() {
           <FriendManager
             friends={friends}
             setFriends={setFriends}
+            billPayerId={billPayerId}
+            setBillPayerId={setBillPayerId}
             onNext={next}
             onBack={back}
           />
@@ -94,6 +110,8 @@ function App() {
             friends={friends}
             assignments={assignments}
             setAssignments={setAssignments}
+            tip={tip}
+            setTip={setTip}
             onNext={next}
             onBack={back}
           />
@@ -106,6 +124,8 @@ function App() {
             friends={friends}
             assignments={assignments}
             gst={totalGst}
+            tip={tip}
+            billPayerId={billPayerId}
             onBack={back}
             onReset={handleReset}
           />
