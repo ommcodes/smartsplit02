@@ -2,7 +2,7 @@ import { useState } from 'react';
 import './App.css';
 import Stepper from './components/Stepper';
 import ReceiptUpload from './components/ReceiptUpload';
-import ItemsTable from './components/ItemsTable';
+import ReceiptsManager from './components/ReceiptsManager';
 import FriendManager from './components/FriendManager';
 import ItemAssignment from './components/ItemAssignment';
 import SplitSummary from './components/SplitSummary';
@@ -13,15 +13,18 @@ function App() {
   const [step, setStep] = useState(1);
   const [maxReachedStep, setMaxReachedStep] = useState(1);
 
-  // Receipt data
-  const [items, setItems] = useState([]);
-  const [gst, setGst] = useState(0);
+  // Multiple receipts: [{ id, name, items, gst }]
+  const [receipts, setReceipts] = useState([]);
 
-  // Friends
+  // Friends: [{ id, name, upiId }]
   const [friends, setFriends] = useState([]);
 
   // Assignments: { itemId: [friendId, ...] }
   const [assignments, setAssignments] = useState({});
+
+  // Derived — passed to steps 4 & 5
+  const allItems = receipts.flatMap((r) => r.items);
+  const totalGst = receipts.reduce((s, r) => s + (parseFloat(r.gst) || 0), 0);
 
   const goToStep = (n) => {
     setStep(n);
@@ -32,16 +35,19 @@ function App() {
   const back = () => goToStep(step - 1);
 
   const handleParsed = (parsed) => {
-    setItems(parsed.items);
-    setGst(parsed.gst);
+    setReceipts([{
+      id: crypto.randomUUID(),
+      name: 'Receipt 1',
+      items: parsed.items,
+      gst: parsed.gst,
+    }]);
     setAssignments({});
   };
 
   const handleReset = () => {
     setStep(1);
     setMaxReachedStep(1);
-    setItems([]);
-    setGst(0);
+    setReceipts([]);
     setFriends([]);
     setAssignments({});
   };
@@ -54,7 +60,8 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       <Stepper currentStep={step} onStepClick={goToStep} maxReachedStep={maxReachedStep} />
 
-      <div className="pb-8">
+      {/* pb-24 keeps content above mobile keyboard / bottom nav */}
+      <div className="pb-24">
         {step === 1 && (
           <ReceiptUpload
             onParsed={handleParsed}
@@ -63,11 +70,10 @@ function App() {
         )}
 
         {step === 2 && (
-          <ItemsTable
-            items={items}
-            setItems={setItems}
-            gst={gst}
-            setGst={setGst}
+          <ReceiptsManager
+            receipts={receipts}
+            setReceipts={setReceipts}
+            setAssignments={setAssignments}
             onNext={next}
             onBack={back}
           />
@@ -84,7 +90,7 @@ function App() {
 
         {step === 4 && (
           <ItemAssignment
-            items={items}
+            items={allItems}
             friends={friends}
             assignments={assignments}
             setAssignments={setAssignments}
@@ -95,10 +101,11 @@ function App() {
 
         {step === 5 && (
           <SplitSummary
-            items={items}
+            items={allItems}
+            receipts={receipts}
             friends={friends}
             assignments={assignments}
-            gst={gst}
+            gst={totalGst}
             onBack={back}
             onReset={handleReset}
           />

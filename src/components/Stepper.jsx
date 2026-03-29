@@ -7,9 +7,12 @@ const STEPS = [
 ];
 
 export default function Stepper({ currentStep, onStepClick, maxReachedStep }) {
+  const current = STEPS.find((s) => s.id === currentStep);
+
   return (
     <div className="w-full bg-white border-b border-gray-200 sticky top-0 z-10 shadow-sm">
       <div className="max-w-2xl mx-auto px-4 py-3">
+        {/* Dots + connectors row — visible at all sizes */}
         <div className="flex items-center justify-between">
           {STEPS.map((step, idx) => {
             const isCompleted = step.id < currentStep;
@@ -45,6 +48,7 @@ export default function Stepper({ currentStep, onStepClick, maxReachedStep }) {
                       step.id
                     )}
                   </div>
+                  {/* Step label: hidden on mobile (xs), shown sm+ */}
                   <span
                     className={`text-xs hidden sm:block font-medium ${
                       isCurrent ? 'text-green-600' : isCompleted ? 'text-green-500' : 'text-gray-400'
@@ -65,6 +69,11 @@ export default function Stepper({ currentStep, onStepClick, maxReachedStep }) {
             );
           })}
         </div>
+
+        {/* Mobile only: current step name below the dots */}
+        <p className="sm:hidden text-xs text-center text-green-600 font-semibold mt-1.5 leading-none">
+          Step {currentStep} of {STEPS.length} — {current?.label}
+        </p>
       </div>
     </div>
   );

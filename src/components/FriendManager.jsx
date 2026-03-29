@@ -30,27 +30,57 @@ export function getFriendDotColor(index) {
   return DOT_COLORS[index % DOT_COLORS.length];
 }
 
+/** Inline UPI editor shown below a friend chip */
+function UpiEditor({ friend, onSave }) {
+  const [value, setValue] = useState(friend.upiId || '');
+  return (
+    <div className="mt-1 flex gap-1.5">
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder="yourname@upi"
+        className="flex-1 text-xs border border-gray-200 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-green-400 bg-white"
+        style={{ fontSize: '16px' }}
+        autoComplete="off"
+        inputMode="email"
+      />
+      <button
+        onClick={() => onSave(value.trim())}
+        className="px-2.5 py-1.5 bg-green-500 text-white rounded-lg text-xs font-medium hover:bg-green-600 transition-colors min-h-[36px]"
+      >
+        Save
+      </button>
+    </div>
+  );
+}
+
 export default function FriendManager({ friends, setFriends, onNext, onBack }) {
   const [name, setName] = useState('');
+  const [showUpiFor, setShowUpiFor] = useState(null); // friend id whose UPI editor is open
 
   const addFriend = () => {
     const trimmed = name.trim();
     if (!trimmed) return;
-    if (friends.some((f) => f.name.toLowerCase() === trimmed.toLowerCase())) {
-      return; // duplicate
-    }
-    setFriends((prev) => [...prev, { id: crypto.randomUUID(), name: trimmed }]);
+    if (friends.some((f) => f.name.toLowerCase() === trimmed.toLowerCase())) return;
+    setFriends((prev) => [...prev, { id: crypto.randomUUID(), name: trimmed, upiId: '' }]);
     setName('');
   };
 
   const removeFriend = (id) => {
     setFriends((prev) => prev.filter((f) => f.id !== id));
+    if (showUpiFor === id) setShowUpiFor(null);
+  };
+
+  const saveUpiId = (id, upiId) => {
+    setFriends((prev) => prev.map((f) => (f.id === id ? { ...f, upiId } : f)));
+    setShowUpiFor(null);
   };
 
   const canProceed = friends.length >= 2;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 py-8">
+    <div className="max-w-2xl mx-auto px-4 py-6 sm:py-8">
       <div className="mb-6">
         <h2 className="text-xl font-bold text-gray-900">Add Friends</h2>
         <p className="text-gray-500 text-sm mt-1">Add at least 2 people to split the bill with.</p>
@@ -65,13 +95,14 @@ export default function FriendManager({ friends, setFriends, onNext, onBack }) {
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addFriend()}
             placeholder="Friend's name"
-            className="flex-1 text-sm border border-gray-200 rounded-xl px-4 py-2.5 focus:outline-none focus:ring-2 focus:ring-green-400"
+            className="flex-1 border border-gray-200 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-green-400"
+            style={{ fontSize: '16px' }}
             maxLength={30}
           />
           <button
             onClick={addFriend}
             disabled={!name.trim()}
-            className="px-5 py-2.5 bg-green-500 hover:bg-green-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium rounded-xl transition-colors text-sm"
+            className="px-5 py-3 bg-green-500 hover:bg-green-600 disabled:bg-gray-200 disabled:text-gray-400 text-white font-medium rounded-xl transition-colors text-sm min-h-[44px]"
           >
             + Add
           </button>
@@ -87,22 +118,45 @@ export default function FriendManager({ friends, setFriends, onNext, onBack }) {
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 p-4">
-          <div className="flex flex-wrap gap-2">
+          <div className="space-y-2">
             {friends.map((friend, idx) => (
-              <div
-                key={friend.id}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-sm font-medium ${getFriendColorClass(idx)}`}
-              >
-                <div className={`w-2 h-2 rounded-full ${DOT_COLORS[idx % DOT_COLORS.length]}`} />
-                <span>{friend.name}</span>
-                <button
-                  onClick={() => removeFriend(friend.id)}
-                  className="ml-1 hover:opacity-60 transition-opacity"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+              <div key={friend.id}>
+                {/* Friend row */}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`flex items-center gap-2 px-3 py-2 rounded-full border text-sm font-medium flex-1 min-w-0 ${getFriendColorClass(idx)}`}
+                  >
+                    <div className={`w-2 h-2 rounded-full shrink-0 ${DOT_COLORS[idx % DOT_COLORS.length]}`} />
+                    <span className="truncate">{friend.name}</span>
+                    {friend.upiId && (
+                      <span className="text-xs opacity-60 truncate max-w-[100px]">{friend.upiId}</span>
+                    )}
+                  </div>
+
+                  {/* UPI toggle button */}
+                  <button
+                    onClick={() => setShowUpiFor(showUpiFor === friend.id ? null : friend.id)}
+                    className="text-xs text-gray-400 hover:text-green-600 transition-colors border border-gray-200 rounded-lg px-2 py-1.5 bg-white whitespace-nowrap min-h-[36px]"
+                    title={friend.upiId ? 'Edit UPI ID' : 'Add UPI ID'}
+                  >
+                    {friend.upiId ? '✎ UPI' : '+ UPI'}
+                  </button>
+
+                  {/* Remove */}
+                  <button
+                    onClick={() => removeFriend(friend.id)}
+                    className="p-1.5 hover:opacity-60 transition-opacity text-gray-400 min-w-[36px] min-h-[36px] flex items-center justify-center"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Inline UPI editor */}
+                {showUpiFor === friend.id && (
+                  <UpiEditor friend={friend} onSave={(upi) => saveUpiId(friend.id, upi)} />
+                )}
               </div>
             ))}
           </div>
@@ -110,6 +164,7 @@ export default function FriendManager({ friends, setFriends, onNext, onBack }) {
           <p className="text-xs text-gray-400 mt-3">
             {friends.length} {friends.length === 1 ? 'person' : 'people'} added
             {friends.length < 2 && ' — add 1 more to continue'}
+            {friends.some((f) => !f.upiId) && ' · Add UPI IDs to enable direct payment links'}
           </p>
         </div>
       )}

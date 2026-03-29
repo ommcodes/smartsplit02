@@ -8,8 +8,21 @@ body {
   font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent horizontal overflow on narrow screens */
+  overflow-x: hidden;
 }
 
 #root {
   min-height: 100svh;
+}
+
+/* Prevent iOS auto-zoom on input focus (must be 16px or more to suppress zoom) */
+input[type='text'],
+input[type='number'],
+input[type='email'],
+input[type='tel'],
+input[type='search'],
+textarea,
+select {
+  font-size: 16px;
 }
