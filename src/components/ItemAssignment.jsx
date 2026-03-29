@@ -32,14 +32,14 @@ export default function ItemAssignment({ items, friends, assignments, setAssignm
   };
 
   const unassignedItems = items.filter((item) => !(assignments[item.id] || []).length);
-  const canProceed = unassignedItems.length === 0 && items.length > 0;
+  const canProceed = items.length > 0;
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="mb-4 flex items-start justify-between">
         <div>
           <h2 className="text-xl font-bold text-gray-900">Assign Items</h2>
-          <p className="text-gray-500 text-sm mt-1">Tap a name to assign them to an item.</p>
+          <p className="text-gray-500 text-sm mt-1">Tap names to assign an item. Unassigned items split equally among everyone.</p>
         </div>
         <button
           onClick={assignAllToEveryone}
@@ -72,7 +72,7 @@ export default function ItemAssignment({ items, friends, assignments, setAssignm
             <div
               key={item.id}
               className={`bg-white rounded-2xl border p-4 transition-all ${
-                assigned.length === 0 ? 'border-orange-200 bg-orange-50/30' : 'border-gray-200'
+                assigned.length === 0 ? 'border-blue-200 bg-blue-50/20' : 'border-gray-200'
               }`}
             >
               <div className="flex items-start justify-between gap-2 mb-3">
@@ -86,7 +86,7 @@ export default function ItemAssignment({ items, friends, assignments, setAssignm
                       <span className="font-semibold text-gray-700">₹{fmt(share)}</span> each
                     </div>
                   ) : (
-                    <span className="text-xs text-orange-500 font-medium">Unassigned</span>
+                    <span className="text-xs text-blue-500 font-medium">everyone</span>
                   )}
                 </div>
               </div>
@@ -145,8 +145,8 @@ export default function ItemAssignment({ items, friends, assignments, setAssignm
       </div>
 
       {unassignedItems.length > 0 && (
-        <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-xl text-orange-600 text-sm">
-          ⚠️ {unassignedItems.length} item{unassignedItems.length !== 1 ? 's' : ''} still unassigned
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-xl text-blue-600 text-sm">
+          ℹ️ {unassignedItems.length} item{unassignedItems.length !== 1 ? 's' : ''} will be split equally among everyone
         </div>
       )}
 

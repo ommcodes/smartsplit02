@@ -79,7 +79,7 @@ export default function SplitSummary({ items, friends, assignments, gst, onBack,
             {/* Items */}
             <div className="px-4 py-3">
               {sp.assignedItems.length === 0 ? (
-                <p className="text-xs text-gray-400 italic">No items assigned</p>
+                <p className="text-xs text-gray-400 italic">No items assigned to this person</p>
               ) : (
                 <div className="space-y-1.5 mb-3">
                   {sp.assignedItems.map((ai, i) => (
