@@ -82,7 +82,8 @@ src/
 │   ├── ItemsTable.jsx     # Editable items + GST
 │   ├── FriendManager.jsx  # Add/remove friends
 │   ├── ItemAssignment.jsx # Per-item assignment UI
-│   └── SplitSummary.jsx   # Final breakdown cards
+│   ├── SplitSummary.jsx   # Final breakdown cards
+│   └── LicensePage.jsx    # In-app license viewer
 ├── utils/
 │   └── parseReceipt.js    # OCR text parser + split calculator
 ├── App.jsx                # Root component, state management
@@ -104,4 +105,9 @@ src/
 
 ## License
 
-MIT
+This project is licensed under the **PolyForm Noncommercial License 1.0.0**.
+
+You may use, modify, and distribute this software for **noncommercial purposes only** — including personal use, research, education, and use by nonprofit/government organisations. Commercial use of any kind is not permitted without explicit written permission from the author.
+
+Full license text: [LICENSE](./LICENSE)
+Canonical URL: https://polyformproject.org/licenses/noncommercial/1.0.0

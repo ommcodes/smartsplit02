@@ -11,8 +11,11 @@ function isNonItemLine(line) {
   // Lines that are only numbers, currency symbols, punctuation — no description text
   if (/^[₹$\s\d,.\-+×x*%:()\|\/\\]+$/.test(l)) return true;
 
-  // Table headers (whole line is just column labels)
-  if (/^\s*(item|items|qty|quantity|rate|amount|sr\.?|sl\.?|s\.?no\.?|description|particulars|price|mrp|unit|units|hsn)\s*$/i.test(l)) return true;
+  // Table header rows — any line composed entirely of column-label words
+  // Handles single words ("Item") and multi-column rows ("Item  Qty  Rate  Amount")
+  const HEADER_TOKEN = /^(s\.?no\.?|sr\.?|sl\.?|sno|item|items|description|desc|particulars|qty|quantity|rate|price|mrp|amount|amt|total|hsn|unit|units|disc|discount|tax|cgst|sgst|igst|gst|vat|tc|t&c|no\.?|nbr|#)$/i;
+  const tokens = l.split(/[\s|,\t/\\]+/).filter(Boolean);
+  if (tokens.length > 0 && tokens.every((t) => HEADER_TOKEN.test(t))) return true;
 
   // Address lines
   if (/\b(road|rd\b|street|st\b|avenue|ave\b|lane\b|city|town|pin\s*code|pincode|zip\s*code|zipcode|district|state|nagar|marg|chowk|sector|block|floor|building|complex)\b/i.test(l)) return true;
@@ -23,6 +26,14 @@ function isNonItemLine(line) {
 
   // Tax / business registration identifiers
   if (/\b(gstin|gst\s*no\.?|gst\s*number|gst\s*reg|tin\b|fssai|pan\b|cin\b|reg\.?\s*no\.?|license\s*no|dl\s*no)\b/i.test(l)) return true;
+
+  // Reference number indicators — "No.", "No:", "Nbr", "#123"
+  if (/\bno\s*[.:]/i.test(l)) return true;
+  if (/\bnbr\b/i.test(l)) return true;
+  if (/#\s*\d/.test(l)) return true;
+
+  // Taxable amount lines (base amount before tax — not the tax itself)
+  if (/\btaxable\b/i.test(l)) return true;
 
   // Date, time, invoice/bill headers
   if (/\b(date|time|invoice(\s*(no\.?|#|num))?|bill(\s*(no\.?|#|num))?|order(\s*(no\.?|#|num))?|receipt(\s*(no\.?|#|num))?|table(\s*(no\.?|#))?|txn\s*id|transaction)\b/i.test(l)) return true;
@@ -37,15 +48,20 @@ function isNonItemLine(line) {
   // Payment method lines
   if (/\b(cash\b|by\s*cash|card\b|by\s*card|upi\b|change\s*due|tender|paid|payment|tip\b|gratuity|gpay|paytm|phonepay|phonepe)\b/i.test(l)) return true;
 
-  // Footer / thank-you lines
-  if (/\b(thank\s*you|thanks|visit\s*(us|again)?|welcome|feedback|enjoy\s*your|have\s*a|see\s*you|come\s*again)\b/i.test(l)) return true;
+  // Footer / thank-you / T&C lines
+  if (/\b(thank\s*you|thanks|visit\s*(us|again)?|welcome|feedback|enjoy\s*your|have\s*a|see\s*you|come\s*again|t\s*&\s*c|terms\s*(&|and)\s*conditions?|conditions?\s*apply)\b/i.test(l)) return true;
+  if (/^\s*tc\s*[:\-]?/i.test(l)) return true; // "Tc:" or "TC -" at line start
 
   return false;
 }
 
-// True if line is a GST/tax line (price on it should go into gst total)
+// True if line is a GST/tax/rate line (price on it should go into gst total).
+// Also catches OCR-mangled tax labels by looking for a % rate indicator on the line
+// e.g. "SG5T 9% 45.00" — we can't predict all typos but % is a reliable signal.
 function isTaxLine(line) {
-  return /\b(cgst|sgst|igst|gst|tax|vat|service\s*charge|service\s*tax|cess)\b/i.test(line);
+  if (/\b(cgst|sgst|igst|gst|tax|vat|service\s*charge|service\s*tax|cess)\b/i.test(line)) return true;
+  if (/\d\s*%/.test(line)) return true; // any "N%" pattern = a rate line
+  return false;
 }
 
 /**
@@ -83,22 +99,36 @@ export function parseReceiptText(rawText) {
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
 
+  // Marks the boundary between the items section and the totals/tax summary section.
+  // Anything after this line should not be treated as an item.
+  const TOTALS_BOUNDARY = /\b(subtotal|sub\s*total|grand\s*total|total\s*amount|net\s*amount|net\s*total|amount\s*due|bill\s*total|balance\s*due)\b/i;
+
   const items = [];
   let gst = 0;
+  let crossedTotals = false;
   let detectedTotal = 0;
 
   for (const line of lines) {
-    // Skip all non-item lines
-    if (isNonItemLine(line)) continue;
+    // Detect section boundary (keyword present regardless of whether there's a price).
+    // isTaxLine() match also signals we're in the summary section.
+    if (!crossedTotals && (isTaxLine(line) || TOTALS_BOUNDARY.test(line))) {
+      crossedTotals = true;
+    }
 
     const price = extractPrice(line);
     if (price === null) continue; // no price on this line — skip
 
-    // Tax line: accumulate into GST, don't add as item
+    // Tax line: accumulate into GST BEFORE any other skip checks.
     if (isTaxLine(line)) {
       gst += price;
       continue;
     }
+
+    // Skip all non-item lines
+    if (isNonItemLine(line)) continue;
+
+    // Past the items section — don't add anything beyond the totals boundary
+    if (crossedTotals) continue;
 
     // It's a candidate item line — extract the name
     const name = extractName(line);

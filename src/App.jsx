@@ -6,8 +6,10 @@ import ItemsTable from './components/ItemsTable';
 import FriendManager from './components/FriendManager';
 import ItemAssignment from './components/ItemAssignment';
 import SplitSummary from './components/SplitSummary';
+import LicensePage from './components/LicensePage';
 
 function App() {
+  const [showLicense, setShowLicense] = useState(false);
   const [step, setStep] = useState(1);
   const [maxReachedStep, setMaxReachedStep] = useState(1);
 
@@ -43,6 +45,10 @@ function App() {
     setFriends([]);
     setAssignments({});
   };
+
+  if (showLicense) {
+    return <LicensePage onClose={() => setShowLicense(false)} />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -98,6 +104,15 @@ function App() {
           />
         )}
       </div>
+
+      <footer className="text-center pb-6">
+        <button
+          onClick={() => setShowLicense(true)}
+          className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+        >
+          PolyForm Noncommercial License 1.0.0
+        </button>
+      </footer>
     </div>
   );
 }
